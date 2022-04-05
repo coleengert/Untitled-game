@@ -1,0 +1,17 @@
+name,item_type,attack,armor,poison,sell_value,consumable,use_effect,use_value,description
+amethyst_sword,1hand,15,0,0,100,FALSE,0,0,A sword of purple quartz. When you wield it you can feel the power of the purp.
+poisoned_sword,1hand,15,0,0.2,150,FALSE,0,0,A sword whose blade is covered in a strange goo that you definitely wouldn’t want in your open wounds
+red_potion,,0,0,0,100,TRUE,0,0,An elixir that tastes of fresh cherries and rubber. Makes you burp a lot.
+green_potion,,0,0,0,100,TRUE,0,0,Tastes like pine needles and grass
+purple_potion,,0,0,0,100,TRUE,heal,25,"Damn, what a cool color"
+yellow_potion,,0,0,0,100,battle,bendy,3,Smells like banana rum
+pink_potion,,0,0,0,100,TRUE,0,0,Smells like soap and armpits
+poleaxe,2hand,30,0,0,100,FALSE,0,0,Sexy valkyries strip on these
+leather chaps,legs,0,5,0,100,FALSE,0,0,"Durable, yet pliant around the crotch"
+javelin,1hand,20,2,0,200,FALSE,0,0,The pointy bit goes in the bad guy
+wooden shield,1hand,0,5,0,50,FALSE,0,0,a square of plywood with a leather strap on one side
+mycoprotein,,0,0,0,20,TRUE,heal,40,Fresh from the vat
+hemomancer’s_periapt,,0,0,0,100,FALSE,0,0,An opulent amulet with several ampoules of blood. The word “BLOOD” is crudely scrawled on it’s back.
+iron_mask,head,0,3,0,100,FALSE,0,0,A glib mask of cold metal. Prevents fear.
+spell_tome,,0,0,0,80,noncombat,learn,1,An arcane dissertation. Use to teach one ally
+fire_potion,,0,0,0,80,battle,damage,20,Flask of fire

@@ -1,0 +1,19 @@
+name,hp,attack dmg,evasion,defense,xp,poison_chance,magic,CR,boss
+skeleton,20,10,0,1,5,0,5,1,FALSE
+skeleclown,30,12,0,1,20,0,10,1,FALSE
+mimic_meal,50,5,0,0,15,0,5,1,FALSE
+foot_soldier,50,5,0,2,15,0,2,2,FALSE
+snooter,100,15,0,0,25,0,10,2,FALSE
+skink_soldier,90,12,0,1,20,0,5,2,FALSE
+multiworm,200,12,0,1,60,0,20,4,FALSE
+monarch,40,20,0,0,25,0,20,3,FALSE
+yucky_bug,20,10,0.6,0,10,0,20,2,FALSE
+bad_dog,60,15,0.4,1,20,0,5,3,FALSE
+beelzeboob,100,20,0,1,50,0,30,3,FALSE
+mayonnaise_elemental,30,7,0,0,15,0,5,99,FALSE
+awakened_catboy,140,20,0.2,1,80,0,10,3,FALSE
+dandelion_man,80,18,0.3,1,60,0.1,10,2,FALSE
+lobster_linguine,1,10,0,0,5,0,20,99,TRUE
+nervous_nelly,80,22,0.3,0,90,0,25,2,FALSE
+mental_illness,20,20,0,1,5,0.1,40,99,TRUE
+eyestalk,50,10,0,0,0,0,20,99,TRUE
