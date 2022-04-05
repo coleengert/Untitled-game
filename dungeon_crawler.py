@@ -18,7 +18,7 @@ window_width = 1280
 window_height = 1024
 clock = pygame.time.Clock()
 
-
+#initialize global variables
 items_in_inventory = []
 for i in range(25):
     items_in_inventory.append("")
@@ -48,13 +48,6 @@ briar_duration = 0
 briar_dmg = 0
 
 
-
-
-
-
-
-
-
 basic_commands = ["Attack", "Familiar", "Magic", "Defend", "Item", "Flee"]
 current_commands = basic_commands
 
@@ -62,19 +55,9 @@ tips = ["NO WEEENIES ALLOWED", "TRY PLAYING AN EASIER GAME", "BABIES LIKE YOU US
 
 
 
-# initialize stats
-nugs = 5
-
-
-
-
-
-
-
-
-
 
 class Ally(pygame.sprite.Sprite):
+    """player controlled in-battle character"""
     """turn_state: 0 = hasn't gone, 1 = current, 2 = went"""
     
     def __init__(self,name = "naruto"):
@@ -865,7 +848,7 @@ class Item(pygame.sprite.Sprite):
 
 
 class Layer(pygame.sprite.Sprite):
-    """this class should be replaced by actual pygame surfaces"""
+    """this class should probably be replaced by actual pygame surfaces"""
     def __init__(self, which):
         global all_sprites
         pygame.sprite.Sprite.__init__(self,self.containers)
@@ -910,7 +893,7 @@ class Menu_button(pygame.sprite.Sprite):
 
 
 class NPC(pygame.sprite.Sprite):
-    
+    """enemies or neutral interactable entities outside of battle"""
     def __init__(self, species, col = 0, row = 0, boss = False):
 
         pygame.sprite.Sprite.__init__(self, self.containers)
@@ -991,6 +974,7 @@ class NPC(pygame.sprite.Sprite):
 
 
 class Projectile(pygame.sprite.Sprite):
+    """moving sprites used in battle animations"""
     global all_sprites
     
     def __init__(self, name, target, total_frames : int = 0, damage : int = 0, size : int = 25, caster = None):
@@ -1066,7 +1050,9 @@ class Projectile(pygame.sprite.Sprite):
                         self.frame += 1
                         self.rect.move_ip(0, (300//15) * self.frame )
 
+
 class Reward_panel(pygame.sprite.Sprite):
+    """displays reward choices after defeating a boss"""
     global all_sprites
     def __init__(self, reward):
         pygame.sprite.Sprite.__init__(self,self.containers)
@@ -1116,7 +1102,7 @@ class Reward_panel(pygame.sprite.Sprite):
 
             
 class Shape():
-    
+    """non-sprite entites used in battle animations"""
     def __init__(self, name, caster, target, dmg):
         global shapes
         self.name = name
@@ -1188,6 +1174,7 @@ class Shape():
 
     
 class Stairs(pygame.sprite.Sprite):
+    """leads to next stage"""
     def __init__(self, col, row):
         pygame.sprite.Sprite.__init__(self,self.containers)
         self.image = pygame.image.load("stairs.gif")
@@ -1411,6 +1398,7 @@ def battle_end(condition, boss = False):
 
 
 def battle_update(target = False, dmg = 0, poison_chance = 0, fear_chance = 0, action = None, update = True, dmg_type = "physical"):
+    """everything combat related, advances turn order, updates status effects"""
     global to_dissolve, battle_log, current_turn, current_action, current_cursor, briar_duration, briar_dmg
     
     current_action = action
@@ -1600,10 +1588,10 @@ def battle_update(target = False, dmg = 0, poison_chance = 0, fear_chance = 0, a
             print("{0} : {1}".format(i.name, i.turn_state))
             print("")
 
+
 def collide_check(obj, group, direction):
     global all_sprites, current_background_layer
-
-    
+   
     if direction == "right":
         check = Rect(obj.rect.right ,obj.rect.centery, 5, 1)
     elif direction == "left":
@@ -2606,6 +2594,9 @@ def main():
     
 main()
 
+#################################################################
+#################  NOTES TO SELF  ###############################
+#################################################################
 """TO DO"""
 """ splash screen my face on naruto"""
 """taking stairs actually changes which enemies will spawn etc"""
@@ -2634,7 +2625,7 @@ main()
 """hemomancer class: summons units at cost of hp, like hemomancer from rabbits vs sheep"""
 """four elements for djinn/familiars - life/bio, death, energy, metal/earth/inanimate/inorganic"""
 
-"""ally ideas"""
+"""ALLY IDEAS"""
 """goblin joe"""
 
 """ENEMY IDEAS"""
