@@ -41,11 +41,14 @@ stage_num = 1
 possible_allies = ["catboy", "kwiz"]
 possible_perks = []
 post_boss = False
-spell_list = ["barrier", "briar", "beam", "blood_bond", "laser_barrage", "mindblow", "flare", "stalactite", "spray_of_bats", "deflection_shield", "squish", "mend", "soul_leech", "revive", "rejuvenation_wave"]
+spell_list = ["barrier", "lightning", "blast", "briar", "beam", "blood_bond", "laser_barrage", "mindblow", "flare", "stalactite", "spray_of_bats", "deflection_shield", "squish", "mend", "soul_leech", "revive", "rejuvenation_wave"]
 current_cursor = None
 shapes = []
+particles = []
 briar_duration = 0
 briar_dmg = 0
+colors = {"red" : ["#bf0000","#af0000","#cf0000","#df0000","#ff0000"], "purple": ["#ad6aff", "#9844ff", "#7f16ff", "#6b00ee", "#5b00c9"]}
+
 
 
 basic_commands = ["Attack", "Familiar", "Magic", "Defend", "Item", "Flee"]
@@ -85,8 +88,8 @@ class Ally(pygame.sprite.Sprite):
         self.purge_status()
         
         self.familiars = []
-        self.base_spells = ["Flare", "briar","beam", "laser_barrage"]
-        self.learned_spells = ["soul_leech", "revive", "rejuvenation_wave", "stalactite"]
+        self.base_spells = ["Flare", "briar", "blast", "beam", "laser_barrage"]
+        self.learned_spells = ["soul_leech", "revive", "lightning", "stalactite"]
         if self.name == "kwiz":
             self.job_spells = ["mend"]
         else:
@@ -816,6 +819,7 @@ class Item(pygame.sprite.Sprite):
                     if target.fire == 0:
                         Status_icon("fire", target)
                     target.fire += random.randint(4,8)
+                    explosion(target.rect.center)
                     
                     
             elif self.use_effect == "bendy":
@@ -969,7 +973,41 @@ class NPC(pygame.sprite.Sprite):
             
         
 
-
+class Particle():
+    """particle effects, e.g. explosions"""
+    global particles, colors
+    
+    def __init__(self, name, color, angle = 360, count = 0, velocity = 50, start_pos = (0,0)):
+        """ 0 degree angle points up. increases clockwise"""
+        particles.append(self)
+        self.name = name
+        self.count = count
+        self.velocity = velocity
+        self.pos = start_pos
+        self.rect = pygame.Rect(self.pos[0], self.pos[1], 5, 5)
+        self.color = random.choice(colors[color])
+        if angle == 180:
+            self.angle = random.randint(-90, 90)
+        else:
+            self.angle = random.randint(0,359)
+        if self.name == "explosion":
+            self.xvel = math.sin(math.radians(self.angle)) * self.velocity 
+            self.yvel = math.cos(math.radians(self.angle)) * self.velocity 
+        
+    def update(self):
+        self.count += 1
+        if self.name == "explosion":
+            
+            if self.count % 2 == 0:    
+                self.rect.move_ip(round(self.xvel), -round(self.yvel))
+                
+                self.xvel = round(self.xvel * 0.9)
+                self.yvel -= 5
+            
+            if self.count >= 20:
+                particles.remove(self)
+                    
+    
 
 
 
@@ -1103,13 +1141,16 @@ class Reward_panel(pygame.sprite.Sprite):
             
 class Shape():
     """non-sprite entites used in battle animations"""
-    def __init__(self, name, caster, target, dmg):
+    def __init__(self, name, caster, target, dmg = 0, passed_start_pos = None, count = 1, branch = False):
         global shapes
         self.name = name
         self.target = target
         self.dmg = dmg
         self.caster = caster
-        self.count = 1
+        self.count = count
+        self.hit = False
+        
+        
         
         shapes.append(self)
         
@@ -1128,15 +1169,33 @@ class Shape():
             else:
                 self.direction = -1
                 
+        elif self.name == "lightning":
+            if passed_start_pos:
+                self.start_pos = passed_start_pos
+            else:
+                self.start_pos = (target.rect.centerx, 0) 
+            self.end_pos = (target.rect.centerx, target.rect.bottom)
+            self.current_pos = self.start_pos
+            self.dy = (target.rect.bottom - (self.start_pos[1]//2)) // 15
+            self.segments = []
+            self.branch = branch
+            if self.branch:
+                self.xvariance = 75
+            else:
+                self.xvariance = 30
+                
             
         
     def on_hit(self):
+        global current_action
         for i in shapes:
             if i.name == "beam":
                 return
         else: 
-            battle_log.append("{0}'s beams hit for {1} damage!".format(self.caster.name, self.dmg))
+            self.target.shake_count = 5
             battle_update(self.target, self.dmg, action = "Laser Barrage", dmg_type = "magical")
+            battle_log.append("{0}'s {1} hit for {2} damage!".format(self.caster.name, current_action, self.dmg))
+            
             
         
     def update(self):
@@ -1147,7 +1206,6 @@ class Shape():
                 self.count = (self.count + 1) % 121
                 if self.count == 120:
                     shapes.remove(self)
-                    self.target.shake_count = 5
                     self.on_hit()
                     return
                 
@@ -1171,6 +1229,39 @@ class Shape():
                 if self.count == 90:
                     Shape("beam", self, self.target, self.dmg)
                     
+        elif self.name == "lightning":
+            if self.count > 0:
+                
+                if self.count >= 30:
+                    
+                    if self.count >= 35:
+                        shapes.remove(self)
+                        return
+                    if self.hit == False:
+                        self.segments = []
+                        if self.dmg:
+                            self.on_hit() 
+                        self.hit = True
+                    if self.dmg:
+                        explosion(self.target.rect.center, color = "purple")
+                
+                    
+                
+                elif self.count % 2 == 0:
+                    segment_color = random.choice(colors["purple"])
+                    self.next_pos = (random.randint(self.target.rect.centerx - self.xvariance, self.target.rect.centerx + self.xvariance), self.current_pos[1] + self.dy)
+                    self.segments.append((segment_color, self.current_pos, self.next_pos))
+                    
+                    if random.random() > 0.8 and self.branch == False:
+                        stop_branching = False
+                        if random.random() > 0.7:
+                            stop_branching = True
+                        Shape("lightning", self.caster, self.target, passed_start_pos = self.current_pos, count = self.count + random.randint(4, 10), branch = stop_branching)
+                    self.current_pos = self.next_pos
+                    
+                self.count +=1
+                    
+                
 
     
 class Stairs(pygame.sprite.Sprite):
@@ -1658,6 +1749,12 @@ def dissolve(target):
             battle_end("win")
 
 
+def explosion(pos, color = "red", size = "medium"):
+    if size == "medium":
+        for i in range(20):
+            Particle("explosion", color, 180, start_pos = pos)
+            
+
 
 def game_over(cause):
     global all_sprites, current_background_layer, death_screen, death_text
@@ -1901,6 +1998,10 @@ def bisque(caster):
     damage = int(caster.magic * random.uniform(1, 2))
     battle_update(target = party_list, dmg = damage, action = "Bisque", dmg_type = "magic", update = False)
     
+def blast(caster, target):
+    damage = int(caster.magic * random.uniform(0.9, 1.6))
+    battle_update(target, damage, action = "Blast", dmg_type = "magic")
+    explosion(target.rect.center)
     
 def blood_bond(caster, target):
     """spread incoming damage across self and targets"""
@@ -1948,8 +2049,13 @@ def flare(caster, target):
     caster.animating = True
     Projectile("flare", target, 4, int(caster.magic * random.uniform(1, 1.4)), 50)
 
-def laser_barrage(caster, target):
 
+def intense_blast(caster, target):
+    damage = int(caster.magic * random.uniform(1.6, 3.2))
+    battle_update(target, damage, action = "Intense Blast", dmg_type = "magic")
+    explosion(target.rect.center)
+    
+def laser_barrage(caster, target):
     rng = random.randint(0,4)
     dmg_mult = [2.2, 2.4, 2.6, 2.8, 3.0]
     dmg = int(caster.magic * dmg_mult[rng])
@@ -1958,7 +2064,13 @@ def laser_barrage(caster, target):
     caster.cast_count = 5
     caster.animating = True
     
-
+def lightning(caster, target):
+    dmg = int(caster.magic * random.uniform(1.6, 2.0))
+    Shape("lightning", caster, target, dmg)
+    Shape("lightning", caster, target, 0)
+    caster.cast_count = 5
+    caster.animating = True
+    
 def malevolent_milking():
     battle_log.append("Beelzeboob is doing something horrific!")
     Enemy("mayonnaise_elemental")
@@ -2498,6 +2610,7 @@ def main():
         all_sprites.update()
         for i in shapes:
             i.update()
+        
         all_sprites.draw(main_surface)
         highlight(highlight_target)
         
@@ -2514,11 +2627,18 @@ def main():
                 current_action_box.blit(render, (current_action_rect.centerx - render.get_size()[0] / 2, current_action_rect.centery - render.get_size()[1] / 2 ))
                 main_surface.blit(current_action_box,(round(window_width*0.5) - 150, 0))
             
+            
+            for i in particles:
+                i.update()
+                pygame.draw.rect(main_surface, i.color, i.rect)
             for i in shapes:
                 if i.name == "beam":
                     pygame.draw.line(main_surface, i.color, i.start_pos, i.end_pos, i.width)
                 elif i.name == "point":
                     pygame.draw.rect(main_surface, i.color, i.rect)
+                elif i.name == "lightning":
+                    for j in i.segments:
+                        pygame.draw.line(main_surface, j[0], j[1], j[2], 4)
 
                 
         elif current_background_layer == death_screen:
@@ -2624,6 +2744,8 @@ main()
 """items that change class"""
 """hemomancer class: summons units at cost of hp, like hemomancer from rabbits vs sheep"""
 """four elements for djinn/familiars - life/bio, death, energy, metal/earth/inanimate/inorganic"""
+"""speech bubbles in combat responding to events e.g. on fear "jesus christ how horrifying"""
+
 
 """ALLY IDEAS"""
 """goblin joe"""
@@ -2636,6 +2758,7 @@ main()
 """damage based on % of player hp"""
 
 """TOP PRIORITY"""
+"""make intense blast trigger explosion multiple times"""
 """job system"""
 """laser barrage fucks turn order if used before enemy turn"""
 """djinn"""
