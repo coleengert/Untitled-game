@@ -1,5 +1,3 @@
-"""Created on Tue Nov 12 09:58:47 2019"""
-
 import pygame
 import random
 import sys
@@ -41,7 +39,7 @@ stage_num = 1
 possible_allies = ["catboy", "kwiz"]
 possible_perks = []
 post_boss = False
-spell_list = ["barrier", "lightning", "blast", "briar", "beam", "blood_bond", "laser_barrage", "mindblow", "flare", "stalactite", "spray_of_bats", "deflection_shield", "squish", "mend", "soul_leech", "revive", "rejuvenation_wave"]
+spell_list = ["barrier", "lightning", "blast", "intense_blast", "briar", "beam", "blood_bond", "laser_barrage", "mindblow", "flare", "stalactite", "spray_of_bats", "deflection_shield", "squish", "mend", "soul_leech", "revive", "rejuvenation_wave"]
 current_cursor = None
 shapes = []
 particles = []
@@ -74,7 +72,7 @@ class Ally(pygame.sprite.Sprite):
         self.animating = False
         self.loot_xp = 0
         self.stats("init")
-        self.hp = self.max_hp
+        
         self.boss = False
         self.shake_count = 0
         self.shake_frame = 0
@@ -88,8 +86,8 @@ class Ally(pygame.sprite.Sprite):
         self.purge_status()
         
         self.familiars = []
-        self.base_spells = ["Flare", "briar", "blast", "beam", "laser_barrage"]
-        self.learned_spells = ["soul_leech", "revive", "lightning", "stalactite"]
+        self.base_spells = ["Flare", "briar", "blast", "intense_blast", "beam", "laser_barrage"]
+        self.learned_spells = ["stalactite"]
         if self.name == "kwiz":
             self.job_spells = ["mend"]
         else:
@@ -149,14 +147,19 @@ class Ally(pygame.sprite.Sprite):
             self.magic = 5
             self.defense = 0
             self.evasion = 0
+            self.speed = 0
             self.poison_chance = 0
             self.max_hp = 100
+            self.max_pp = 20
+            self.hp = self.max_hp
+            self.pp = self.max_pp
             
         elif arg == "lvl_up":
             self.lvl += 1
             self.xp_to_lvl = int((self.lvl ** 1.1 + self.lvl * 50) - self.xp)
             self.max_hp += 8
             self.hp += 8
+            self.max_pp += 2
             
         elif type(arg) == Item:
             if add == True:
@@ -692,32 +695,47 @@ class Equipment_tab(pygame.sprite.Sprite):
     def toggle(self):
         """changes which equipment tab is active, shows proper items/slots"""
         global all_sprites, highlight_target
-        if highlight_target:
-            if highlight_target.equipped:
-                highlight_target = False
-        if self.state == "active":
-            self.state = "inactive"
-            for i in equipment_slots:
-                if i.owner.name == self.name:
-                    all_sprites.change_layer(i, -2)
-            for i in items:
-                if i.equipped:
-                    i.highlighted = False
-                    if i.equipped.name == self.name:
+        
+        if all_sprites.get_layer_of_sprite(equip_layer) > 0:
+            if highlight_target:
+                if highlight_target.equipped:
+                    highlight_target = False
+            if self.state == "active":
+                self.state = "inactive"
+                for i in equipment_slots:
+                    if i.owner.name == self.name:
                         all_sprites.change_layer(i, -2)
+                for i in items:
+                    if i.equipped:
+                        i.highlighted = False
+                        if i.equipped.name == self.name:
+                            all_sprites.change_layer(i, -2)
+                
                     
-        elif self.state == "inactive":
-            self.state = "active"
-            for i in equipment_slots:
-                if i.owner.name == self.name:
-                    all_sprites.change_layer(i,all_sprites.get_layer_of_sprite(current_background_layer) + 3)
-            for i in items:
-                if i.equipped:
-                    if i.equipped.name == self.name:
-                        all_sprites.change_layer(i,all_sprites.get_layer_of_sprite(current_background_layer) + 4)
+                        
+            elif self.state == "inactive":
+                self.state = "active"
+                
+                for i in equipment_slots:
+                    if i.owner.name == self.name:
+                        all_sprites.change_layer(i,all_sprites.get_layer_of_sprite(current_background_layer) + 3)
+                for i in items:
+                    if i.equipped:
+                        if i.equipped.name == self.name:
+                            all_sprites.change_layer(i,all_sprites.get_layer_of_sprite(current_background_layer) + 4)
+                
+            self.image = pygame.image.load(self.name + "_icon_" + self.state + ".gif")
             
-        self.image = pygame.image.load(self.name + "_icon_" + self.state + ".gif")
+        if all_sprites.get_layer_of_sprite(info_screen) > 0:
+             if self.state == "active":
+                self.state = "inactive"
+                
+                
+             elif self.state == "inactive":
+                self.state = "active"
+                
 
+        
             
             
 
@@ -886,9 +904,10 @@ class Menu_button(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         if pic == "use_button":
             self.rect.move_ip(inv_layer.rect.right - 60, inv_layer.rect.bottom - 35)
-            all_sprites.change_layer(self, -22)
+            all_sprites.change_layer(self, -2)
         else:
             self.rect.move_ip(window_width - 100*(len(menu_buttons)), 5)
+            all_sprites.change_layer(self, 50)
         
 
     def update(self):
@@ -977,15 +996,17 @@ class Particle():
     """particle effects, e.g. explosions"""
     global particles, colors
     
-    def __init__(self, name, color, angle = 360, count = 0, velocity = 50, start_pos = (0,0)):
+    def __init__(self, name, color, angle = 360, count = 0, velocity = 50, start_pos = (0,0), repeat:int = 0):
         """ 0 degree angle points up. increases clockwise"""
         particles.append(self)
         self.name = name
         self.count = count
         self.velocity = velocity
+        self.start_pos = start_pos
         self.pos = start_pos
         self.rect = pygame.Rect(self.pos[0], self.pos[1], 5, 5)
         self.color = random.choice(colors[color])
+        self.repeat = repeat
         if angle == 180:
             self.angle = random.randint(-90, 90)
         else:
@@ -1004,6 +1025,11 @@ class Particle():
                 self.xvel = round(self.xvel * 0.9)
                 self.yvel -= 5
             
+            if self.count == 2 and self.repeat > 0:
+                self.repeat -= 1
+                explosion(self.start_pos, repeat = self.repeat)
+                
+                
             if self.count >= 20:
                 particles.remove(self)
                     
@@ -1673,11 +1699,10 @@ def battle_update(target = False, dmg = 0, poison_chance = 0, fear_chance = 0, a
             if current_turn.downed:
                 battle_update(action = action)
     
-
-            
-        for i in combatants:
-            print("{0} : {1}".format(i.name, i.turn_state))
-            print("")
+"""print turn states of all combatants"""
+#        for i in combatants:
+#            print("{0} : {1}".format(i.name, i.turn_state))
+#            print("")
 
 
 def collide_check(obj, group, direction):
@@ -1749,10 +1774,12 @@ def dissolve(target):
             battle_end("win")
 
 
-def explosion(pos, color = "red", size = "medium"):
+def explosion(pos, color = "red", size = "medium", repeat = 0):
     if size == "medium":
         for i in range(20):
             Particle("explosion", color, 180, start_pos = pos)
+        Particle("explosion", color, 180, start_pos = pos, repeat = repeat)
+        
             
 
 
@@ -1778,12 +1805,18 @@ def move_screen(direction):
     for i in tangible:
         if direction == "right":
             i.rect.move_ip(-100, 0)
+#            for i in tiles:
+#                if i.rect.
+#                    all_sprites.change_layer(i, all_sprites.get_layer_of_sprite(current_background_layer)-1)
         elif direction == "left":
             i.rect.move_ip(100, 0)
         elif direction == "up":
             i.rect.move_ip(0, 100)
         elif direction == "down":
             i.rect.move_ip(0, -100)
+            
+    
+    
             
             
 def reset_rect(obj):
@@ -1818,6 +1851,9 @@ def stage_setup(stage_num = 1):
             new_vert = Wall("vertical", column_num, row_num)
             new_vert.rect.move_ip(50+ 100*(column_num), 100*j + 50)
     
+    
+        
+    
     #make random other walls
     for i in range(150):
         wall_type = random.randint(0,1)
@@ -1846,8 +1882,12 @@ def stage_setup(stage_num = 1):
     for i in range(row_num):
         for j in range(column_num):
             new_tile = Tile()
-            new_tile.rect.move_ip(50 + 100*i,50+ 100*j)
-
+            new_tile.rect.move_ip(-50 + 100*i,-50 + 100*j)
+    for i in tiles:
+        if i.rect.x < 50:
+            all_sprites.change_layer(i, -2)
+        if i.rect.y < 50:
+            all_sprites.change_layer(i, -2)
 
 
 def to_inventory(item):
@@ -1886,6 +1926,8 @@ def toggle_equipment():
                 all_sprites.change_layer(i,all_sprites.get_layer_of_sprite(current_background_layer) + 4)
         for i in tabs:
             all_sprites.change_layer(i,all_sprites.get_layer_of_sprite(current_background_layer) + 4)
+        
+        
 
             
     else:
@@ -2053,7 +2095,7 @@ def flare(caster, target):
 def intense_blast(caster, target):
     damage = int(caster.magic * random.uniform(1.6, 3.2))
     battle_update(target, damage, action = "Intense Blast", dmg_type = "magic")
-    explosion(target.rect.center)
+    explosion(target.rect.center, repeat = 5)
     
 def laser_barrage(caster, target):
     rng = random.randint(0,4)
@@ -2227,6 +2269,7 @@ reward_panels = pygame.sprite.Group()
 battle_huds = pygame.sprite.Group()
 cursors = pygame.sprite.Group()
 barricades = pygame.sprite.Group()
+tiles = pygame.sprite.Group()
 
 
     #assign groups to each sprite class
@@ -2242,7 +2285,7 @@ Cursor.containers = all_sprites, cursors
 Equipment_slot.containers = all_sprites, equipment, equipment_slots
 Stairs.containers = all_sprites, tangible
 Status_icon.containers = all_sprites, status_icons
-Tile.containers = all_sprites
+Tile.containers = all_sprites, tiles
 Projectile.containers = all_sprites
 Ally.containers = all_sprites, allies, combatants
 Equipment_tab.containers = all_sprites, tabs
@@ -2448,7 +2491,49 @@ def main():
                                         if j.index == i.index + 1:
                                             j.toggle()
                                 break
+                            
+                    if ev.key == K_a:
+                        for i in tabs:
+                            if i.state == "active" and len(tabs) > 1:
+                                i.toggle()
+                                if i.index == 1:
+                                    for j in tabs:
+                                        if j.index == len(tabs):
+                                            j.toggle()
+                                else:
+                                    for j in tabs:
+                                        if j.index == i.index -1:
+                                            j.toggle()
+                                break
+            
+                elif all_sprites.get_layer_of_sprite(info_screen) > 0:
+                    if ev.key == K_d:
+                        for i in tabs:
+                            if i.state == "active" and len(tabs) > 1:
+                                i.toggle()
+                                if i.index == len(tabs):
+                                    for j in tabs:
+                                        if j.index == 1:
+                                            j.toggle()
+                                else:
+                                    for j in tabs:
+                                        if j.index == i.index + 1:
+                                            j.toggle()
+                                break
                                            
+                    if ev.key == K_a:
+                        for i in tabs:
+                            if i.state == "active" and len(tabs) > 1:
+                                i.toggle()
+                                if i.index == 1:
+                                    for j in tabs:
+                                        if j.index == len(tabs):
+                                            j.toggle()
+                                else:
+                                    for j in tabs:
+                                        if j.index == i.index -1:
+                                            j.toggle()
+                                break
                         
                         
                         
@@ -2656,8 +2741,48 @@ def main():
                 main_surface.blit(test_font.render(general_log[-5 + i], True, (255,255,255)), (round(window_width*0.6666,0), 20*i + round(window_height*0.8,0)))
             
         elif current_background_layer == info_screen:
-            for i in allies:
-                main_surface.blit(pygame.image.load(i.name + ".gif").subsurface(0, 0, 100, 100), (150*party_list.index(i), 25))
+            for i in tabs:
+                if i.state == "active":
+                    main_surface.blit(pygame.image.load(i.name + ".gif").subsurface(0, 0, 100, 100), (50, 25))
+                    
+                    
+                    main_surface.blit(menu_font.render(str(i.name), True, (255,255,255)), (50, 150))
+                    main_surface.blit(menu_font.render("EXP", True, (255,255,255)), (50, 200))
+                    main_surface.blit(menu_font.render("HP", True, (255,255,255)), (50, 250))
+                    main_surface.blit(menu_font.render("PP", True, (255,255,255)), (50, 300))
+                    
+                    main_surface.blit(menu_font.render("Level " + str(i.who.lvl), True, (255,255,255)), (250, 150))
+                    main_surface.blit(menu_font.render(str(i.who.xp), True, (255,255,255)), (250, 200))
+                    main_surface.blit(menu_font.render(str(i.who.hp) + " / " + str(i.who.max_hp), True, (255,255,255)), (250, 250))
+                    main_surface.blit(menu_font.render(str(i.who.pp) + " / " + str(i.who.max_pp), True, (255,255,255)), (250, 300))
+                    
+                    
+                    main_surface.blit(menu_font.render("Power", True, (255,255,255)), (window_width - 300, 75))
+                    main_surface.blit(menu_font.render("Defense", True, (255,255,255)), (window_width - 300, 125))
+                    main_surface.blit(menu_font.render("Magic", True, (255,255,255)), (window_width - 300, 175))
+                    main_surface.blit(menu_font.render("Speed", True, (255,255,255)), (window_width - 300, 225))
+                    
+                    
+                    main_surface.blit(menu_font.render(str(i.who.power), True, (255,255,255)), (window_width - 100, 75))
+                    main_surface.blit(menu_font.render(str(i.who.defense), True, (255,255,255)), (window_width - 100, 125))
+                    main_surface.blit(menu_font.render(str(i.who.magic), True, (255,255,255)), (window_width - 100, 175))
+                    main_surface.blit(menu_font.render(str(i.who.speed), True, (255,255,255)), (window_width - 100, 225))
+                
+                
+#            self.lvl = 1
+#            self.xp = int((self.lvl - 1) ** 1.1 + (self.lvl - 1) * 50)
+#            self.xp_to_lvl = int((self.lvl ** 1.1 + self.lvl * 50) - self.xp)
+#            self.power = 5
+#            self.magic = 5
+#            self.defense = 0
+#            self.evasion = 0
+#            self.speed = 0
+#            self.poison_chance = 0
+#            self.max_hp = 100
+#            self.max_pp = 20
+#            self.hp = self.max_hp
+#            self.pp = self.max_pp
+            
             
             
             
@@ -2722,7 +2847,6 @@ main()
 """taking stairs actually changes which enemies will spawn etc"""
 """more spells"""
 """job system"""
-"""currency nuggies, shop/poopsmith"""
 """properly scale everything on different resolutions -consider setting game_window.display.set_mode to 0,0 instead of resoultion"""
 """djinn/class system - change job via loader (neuromancer style microsoft)"""
 """instead of elemental types/weaknesses use pierce/bludgeon/slash"""
@@ -2745,6 +2869,7 @@ main()
 """hemomancer class: summons units at cost of hp, like hemomancer from rabbits vs sheep"""
 """four elements for djinn/familiars - life/bio, death, energy, metal/earth/inanimate/inorganic"""
 """speech bubbles in combat responding to events e.g. on fear "jesus christ how horrifying"""
+"""make background tiles only appear within borders of level"""
 
 
 """ALLY IDEAS"""
@@ -2758,11 +2883,10 @@ main()
 """damage based on % of player hp"""
 
 """TOP PRIORITY"""
-"""make intense blast trigger explosion multiple times"""
 """job system"""
 """laser barrage fucks turn order if used before enemy turn"""
 """djinn"""
 """more spells"""
-"""status screen like golden sun"""
+"""balance numbers"""
 """turn system like FFX, each action adds a number of ticks to combatants (modified by speed stat), ticks count down until the next turn happens"""
 
