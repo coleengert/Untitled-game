@@ -1,10 +1,8 @@
 import pygame
 import random
-import sys
 import csv
 from pygame.locals import *
 import math
-import time
 import os
 os.chdir("assets")
 
@@ -39,7 +37,7 @@ stage_num = 1
 possible_allies = ["catboy", "kwiz"]
 possible_perks = []
 post_boss = False
-spell_list = ["barrier", "lightning", "blast", "intense_blast", "briar", "beam", "blood_bond", "laser_barrage", "mindblow", "flare", "stalactite", "spray_of_bats", "deflection_shield", "squish", "mend", "soul_leech", "revive", "rejuvenation_wave"]
+spell_list = ["barrier", "lightning", "infusion", "blast", "intense_blast", "briar", "beam", "blood_bond", "laser_barrage", "mindblow", "flare", "stalactite", "spray_of_bats", "deflection_shield", "squish", "mend", "soul_leech", "revive", "rejuvenation_wave"]
 current_cursor = None
 shapes = []
 particles = []
@@ -61,7 +59,7 @@ class Ally(pygame.sprite.Sprite):
     """player controlled in-battle character"""
     """turn_state: 0 = hasn't gone, 1 = current, 2 = went"""
     
-    def __init__(self,name = "naruto"):
+    def __init__(self,name = "naruto", job = "adventurer"):
         
         global all_sprites
         pygame.sprite.Sprite.__init__(self, self.containers)
@@ -79,6 +77,7 @@ class Ally(pygame.sprite.Sprite):
         self.cast_count = 0
         self.cast_frame = 0
         self.turn_state = 0
+        self.job = job
         
         
         
@@ -86,9 +85,10 @@ class Ally(pygame.sprite.Sprite):
         self.purge_status()
         
         self.familiars = []
-        self.base_spells = ["Flare", "briar", "blast", "intense_blast", "beam", "laser_barrage"]
+        self.base_spells = ["Flare", "briar", "blast", "intense_blast", "infusion", "laser_barrage"]
         self.learned_spells = ["stalactite"]
         if self.name == "kwiz":
+            self.job = "karate wizard"
             self.job_spells = ["mend"]
         else:
             self.job_spells = []
@@ -147,7 +147,7 @@ class Ally(pygame.sprite.Sprite):
             self.magic = 5
             self.defense = 0
             self.evasion = 0
-            self.speed = 0
+            self.speed = 10
             self.poison_chance = 0
             self.max_hp = 100
             self.max_pp = 20
@@ -2091,6 +2091,17 @@ def flare(caster, target):
     caster.animating = True
     Projectile("flare", target, 4, int(caster.magic * random.uniform(1, 1.4)), 50)
 
+def infusion(caster, target):
+    dmg = caster.hp // 4
+    target.hp += round(dmg * 1.5)
+    battle_log.append(caster.name + " sacrificed life to heal " + target.name)
+    if target.hp >= target.max_hp:
+        battle_log.append(target.name + " was fully healed")
+        target.hp = target.max_hp
+    else:
+        battle_log.append("{0} was healed for {1}".format(target.name, round(dmg*1.5)))
+    battle_update(caster, dmg, action = "Infusion", dmg_type = "magical")
+
 
 def intense_blast(caster, target):
     damage = int(caster.magic * random.uniform(1.6, 3.2))
@@ -2747,14 +2758,15 @@ def main():
                     
                     
                     main_surface.blit(menu_font.render(str(i.name), True, (255,255,255)), (50, 150))
-                    main_surface.blit(menu_font.render("EXP", True, (255,255,255)), (50, 200))
-                    main_surface.blit(menu_font.render("HP", True, (255,255,255)), (50, 250))
-                    main_surface.blit(menu_font.render("PP", True, (255,255,255)), (50, 300))
+                    main_surface.blit(menu_font.render("EXP", True, (255,255,255)), (50, 250))
+                    main_surface.blit(menu_font.render("HP", True, (255,255,255)), (50, 300))
+                    main_surface.blit(menu_font.render("PP", True, (255,255,255)), (50, 350))
                     
                     main_surface.blit(menu_font.render("Level " + str(i.who.lvl), True, (255,255,255)), (250, 150))
-                    main_surface.blit(menu_font.render(str(i.who.xp), True, (255,255,255)), (250, 200))
-                    main_surface.blit(menu_font.render(str(i.who.hp) + " / " + str(i.who.max_hp), True, (255,255,255)), (250, 250))
-                    main_surface.blit(menu_font.render(str(i.who.pp) + " / " + str(i.who.max_pp), True, (255,255,255)), (250, 300))
+                    main_surface.blit(menu_font.render(str(i.who.job), True, (255,255,255)), (150, 200))
+                    main_surface.blit(menu_font.render(str(i.who.xp), True, (255,255,255)), (250, 250))
+                    main_surface.blit(menu_font.render(str(i.who.hp) + " / " + str(i.who.max_hp), True, (255,255,255)), (250, 300))
+                    main_surface.blit(menu_font.render(str(i.who.pp) + " / " + str(i.who.max_pp), True, (255,255,255)), (250, 350))
                     
                     
                     main_surface.blit(menu_font.render("Power", True, (255,255,255)), (window_width - 300, 75))
@@ -2885,6 +2897,8 @@ main()
 """TOP PRIORITY"""
 """job system"""
 """laser barrage fucks turn order if used before enemy turn"""
+"""add invalid targets that are skipped over during cursor cycling e.g. cannot cast infusion on self"""
+""" add aoe cursor"""
 """djinn"""
 """more spells"""
 """balance numbers"""
