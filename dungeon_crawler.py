@@ -195,7 +195,6 @@ class Ally(pygame.sprite.Sprite):
                     self.cast_frame = 0
                     self.cast_count = 0
                     
-
                 
                 
                 self.image = self.sheet.subsurface(100* self.cast_frame, 0, 100, 100)
@@ -521,7 +520,9 @@ class Enemy(pygame.sprite.Sprite):
         
         
 
-
+    def intro(self):
+        if self.name == "skeleton" or self.name == "skeleclown":
+            self.intro_sprite = pygame.image.load("skull.gif")
         
         
         
@@ -597,7 +598,16 @@ class Enemy(pygame.sprite.Sprite):
                 attack(self,target)
                 
         
-        
+        elif "skele" in self.name:
+            if rng > 0.7:
+                Intro("skeleton")
+                for j in allies:
+                    if random.random() > 0.5 and j.afraid == False and j.downed == False:
+                        Status_icon("fear", j)
+                        j.afraid = True
+                        battle_log.append("%s strikes fear into your heart!"% i.name)
+            else:
+                attack(self, target)
         
         elif self.name == "snooter":
             if rng > 0.5:
@@ -733,14 +743,56 @@ class Equipment_tab(pygame.sprite.Sprite):
                 
              elif self.state == "inactive":
                 self.state = "active"
-                
-
-        
             
-            
-
     def update(self):
         return
+        
+    
+    
+class Intro(pygame.sprite.Sprite):
+    def __init__(self, species):
+        pygame.sprite.Sprite.__init__(self, self.containers)
+        if species == "skeleton" or species == "skeleclown":
+            self.sheet = pygame.Surface.convert_alpha(pygame.image.load("skull.gif"))
+            self.image = self.sheet.subsurface(0, 0, 100, 100)
+            self.rect = self.image.get_rect()
+            self.image = pygame.transform.scale(self.image, (self.rect.width * 3, self.rect.height * 3))
+            self.rect = self.image.get_rect()
+            self.default_pos = (window_width // 2 - 250, window_height//2 - 300)
+            self.rect.move_ip(self.default_pos)
+            all_sprites.change_layer(self, 30)
+            
+            self.count = 1
+            self.frame = 0
+            self.rotation = 0
+        else:
+            self.kill()
+            
+    def update(self):
+        
+        if self.count > 0:
+            self.count +=1
+            
+            if self.count >= 151:
+                self.kill()
+            
+            
+            if self.count % 15 == 0:
+                self.frame  += 1
+                self.frame = self.frame % 3
+
+   
+            
+            self.rotation += 3
+            self.image = self.sheet.subsurface(100 * self.frame, 0, 100, 100)
+            self.rect = self.image.get_rect()
+            self.image = pygame.transform.scale(self.image, (self.rect.width * 5, self.rect.height * 5))
+            self.rect = self.image.get_rect()
+            self.image = pygame.transform.rotate(self.image, self.rotation)
+            self.image.convert_alpha()
+            self.image.set_alpha(128)
+            reset_rect(self)
+            self.rect.move_ip(self.default_pos)
         
 
 
@@ -1411,6 +1463,7 @@ def battle_init(species, boss):
     global current_background_layer,current_turn, naruto, battle_log, menu_cursor, current_commands, use_button
 
     Enemy(species, boss)
+    Intro(species)
     
     
     all_sprites.change_layer(battle_arena, 10)
@@ -2249,6 +2302,7 @@ def stalactite(caster, target):
 
 
 pygame.display.set_icon(pygame.image.load("icon.gif"))
+pygame.display.set_caption("Quest for Booty")
 game_window = pygame.display.set_mode((window_width,window_height))
 main_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
 #    column_num = int((window_width/100 -((window_width%100)/100)))
@@ -2303,6 +2357,7 @@ Equipment_tab.containers = all_sprites, tabs
 Reward_panel.containers = all_sprites, reward_panels
 Battle_hud.containers = all_sprites, battle_huds
 Barricade.containers = all_sprites, barricades
+Intro.containers = all_sprites
 
 
 
@@ -2781,19 +2836,6 @@ def main():
                     main_surface.blit(menu_font.render(str(i.who.speed), True, (255,255,255)), (window_width - 100, 225))
                 
                 
-#            self.lvl = 1
-#            self.xp = int((self.lvl - 1) ** 1.1 + (self.lvl - 1) * 50)
-#            self.xp_to_lvl = int((self.lvl ** 1.1 + self.lvl * 50) - self.xp)
-#            self.power = 5
-#            self.magic = 5
-#            self.defense = 0
-#            self.evasion = 0
-#            self.speed = 0
-#            self.poison_chance = 0
-#            self.max_hp = 100
-#            self.max_pp = 20
-#            self.hp = self.max_hp
-#            self.pp = self.max_pp
             
             
             
@@ -2855,6 +2897,7 @@ main()
 #################  NOTES TO SELF  ###############################
 #################################################################
 """TO DO"""
+""" a better way to layer sprites - overowlrd layers 1-10, battle arena layers 11-20, menu 21-30 etc. Rather than changing layers to hide sprites, make a visible sprite group only draw sprites in visible group""" 
 """ splash screen my face on naruto"""
 """taking stairs actually changes which enemies will spawn etc"""
 """more spells"""
@@ -2898,9 +2941,10 @@ main()
 """job system"""
 """laser barrage fucks turn order if used before enemy turn"""
 """add invalid targets that are skipped over during cursor cycling e.g. cannot cast infusion on self"""
-""" add aoe cursor"""
+"""add aoe cursor"""
 """djinn"""
 """more spells"""
 """balance numbers"""
 """turn system like FFX, each action adds a number of ticks to combatants (modified by speed stat), ticks count down until the next turn happens"""
+
 
